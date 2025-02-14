@@ -1,35 +1,51 @@
 import streamlit as st
 from pytube import YouTube, Playlist
+import os
 
-st.title("Download de YouTube")
+# Função para baixar vídeo
+def download_video(url, output_path='downloads'):
+    yt = YouTube(url)
+    stream = yt.streams.get_highest_resolution()
+    stream.download(output_path)
+    return stream.default_filename
 
-url = st.text_input("Insira a URL do vídeo, áudio ou playlist:")
+# Função para baixar áudio
+def download_audio(url, output_path='downloads'):
+    yt = YouTube(url)
+    stream = yt.streams.filter(only_audio=True).first()
+    stream.download(output_path)
+    return stream.default_filename
 
-options = ["Áudio", "Vídeo", "Playlist"]
-download_type = st.selectbox("Selecione o tipo de download:", options)
+# Função para baixar playlist
+def download_playlist(url, output_path='downloads'):
+    playlist = Playlist(url)
+    for video in playlist.videos:
+        video.streams.first().download(output_path)
+    return playlist.title
 
+# Interface do Streamlit
+st.title("Baixar Vídeos, Áudios e Playlists do YouTube")
+
+# Campo para inserir a URL
+url = st.text_input("Insira a URL do YouTube:")
+
+# Menu para escolher o tipo de download
+option = st.selectbox("Escolha o tipo de download:", ["Vídeo", "Áudio", "Playlist"])
+
+# Botão para realizar o download
 if st.button("Baixar"):
     if url:
         try:
-            if download_type == "Playlist":
-                playlist = Playlist(url)
-                for video_url in playlist.video_urls:
-                    yt = YouTube(video_url)
-                    if download_type == "Áudio":
-                        stream = yt.streams.filter(only_audio=True).first()
-                    else:
-                        stream = yt.streams.get_highest_resolution()
-                    stream.download()
-                st.success("Playlist baixada com sucesso!")
-            else:
-                yt = YouTube(url)
-                if download_type == "Áudio":
-                    stream = yt.streams.filter(only_audio=True).first()
-                else:
-                    stream = yt.streams.get_highest_resolution()
-                stream.download()
-                st.success(f"{download_type} baixado com sucesso!")
+            if option == "Vídeo":
+                filename = download_video(url)
+                st.success(f"Vídeo baixado com sucesso: {filename}")
+            elif option == "Áudio":
+                filename = download_audio(url)
+                st.success(f"Áudio baixado com sucesso: {filename}")
+            elif option == "Playlist":
+                playlist_title = download_playlist(url)
+                st.success(f"Playlist '{playlist_title}' baixada com sucesso!")
         except Exception as e:
-            st.error(f"Ocorreu um erro: {e}")
+            st.error(f"Erro ao baixar: {e}")
     else:
-        st.warning("Por favor, insira uma URL.")
+        st.warning("Por favor, insira uma URL válida.")
